@@ -246,6 +246,15 @@ describe('Tasks API Integration Tests', () => {
       expect(stored.id).toBe(originalId);
       expect(stored.createdAt).toBe(originalCreatedAt);
     });
+
+    test('sets completedAt when task status is updated to done', async () => {
+      const created = taskService.create({ title: 'Task to finish via PUT' });
+      const res = await request(app).put(`/tasks/${created.id}`).send({ status: 'done' });
+      expect(res.status).toBe(200);
+      expect(res.body.status).toBe('done');
+      expect(res.body.completedAt).not.toBeNull();
+      expect(new Date(res.body.completedAt).getTime()).not.toBeNaN();
+    });
   });
 
   describe('DELETE /tasks/:id', () => {

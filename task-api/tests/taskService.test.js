@@ -161,6 +161,14 @@ describe('taskService', () => {
       expect(updated.id).toBe(created.id);
       expect(updated.createdAt).toBe(created.createdAt);
     });
+
+    test('sets completedAt when task status is updated to done', () => {
+      const task = taskService.create({ title: 'Finish via update' });
+      const updated = taskService.update(task.id, { status: 'done' });
+      expect(updated.status).toBe('done');
+      expect(updated.completedAt).not.toBeNull();
+      expect(new Date(updated.completedAt).getTime()).not.toBeNaN();
+    });
   });
 
   describe('remove', () => {
