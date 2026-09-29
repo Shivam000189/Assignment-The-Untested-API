@@ -78,9 +78,23 @@ ASSIGNMENT.md               # Full brief — read this first
   "priority": "low | medium | high",
   "dueDate": "ISO 8601 or null",
   "completedAt": "ISO 8601 or null",
+  "assignee": "string or null",
   "createdAt": "ISO 8601"
 }
 ```
+
+### Assign endpoint (`PATCH /tasks/:id/assign`)
+
+**Design Decisions & Behavior**:
+- **Field Default**: Every newly created task defaults to `"assignee": null`.
+- **Whitespace Handling**: Assignee names are trimmed of leading and trailing whitespace before persistence.
+- **Validation Rules**:
+  - Missing `assignee`, empty string, or whitespace-only input returns `400 Bad Request`.
+  - Non-string types (e.g., numbers, null, objects) return `400 Bad Request`.
+  - Max length enforced at 100 characters; values longer than 100 return `400 Bad Request`.
+- **Resource Not Found**: Calling `/tasks/:id/assign` with an unknown task ID returns `404 Not Found`.
+- **Reassignment**: Tasks can be reassigned; the new assignee overwrites the previous assignee and returns `200 OK` with the complete updated task.
+- **Field Integrity**: Assigning a task never mutates existing task fields (`title`, `description`, `status`, `priority`, `dueDate`, `completedAt`, `createdAt`).
 
 ### Sample requests
 
@@ -101,6 +115,13 @@ curl "http://localhost:3000/tasks?status=pending&page=1&limit=10"
 curl -X PATCH http://localhost:3000/tasks/<id>/complete
 ```
 
+**Assign a task**
+```bash
+curl -X PATCH http://localhost:3000/tasks/<id>/assign \
+  -H "Content-Type: application/json" \
+  -d '{"assignee": "Alex Doe"}'
+```
+
 ---
 
 ## What to Submit
@@ -111,3 +132,19 @@ See [ASSIGNMENT.md](./ASSIGNMENT.md) for full submission requirements. At minimu
 - **Bug report** — what you found, where in the code, and why it's a bug (not just symptoms)
 - **At least one fix** — with a note on your approach
 - **`PATCH /tasks/:id/assign` implementation** — plus a short explanation of any design decisions (validation, edge cases, etc.)
+
+---
+
+## Submission Notes
+
+### What I'd test next
+Concurrent updates and deletes, and more validation edge cases (very long titles, unusual dueDate formats). I'd also add tests for malformed JSON and unknown routes.
+
+### What surprised me
+The pagination bug was one small line but broke every paged response. The overdue logic looked suspicious but was correct, which is why I let tests confirm it. PUT letting clients overwrite id and createdAt was also unexpected.
+
+### Questions before production
+1. Is reassigning an already-assigned task meant to be allowed?
+2. Should assignee be validated against real users?
+3. Should the API return pagination metadata, and should invalid page/limit values return 400 instead of silently defaulting?
+4. What is the persistence plan, since the store is in-memory?

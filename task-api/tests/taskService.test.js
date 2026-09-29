@@ -16,6 +16,7 @@ describe('taskService', () => {
       expect(task.priority).toBe('medium');
       expect(task.dueDate).toBeNull();
       expect(task.completedAt).toBeNull();
+      expect(task.assignee).toBeNull();
       expect(task.createdAt).toBeDefined();
     });
 
@@ -34,6 +35,7 @@ describe('taskService', () => {
       expect(task.priority).toBe('high');
       expect(task.dueDate).toBe(taskData.dueDate);
       expect(task.completedAt).toBeNull();
+      expect(task.assignee).toBeNull();
     });
   });
 
@@ -212,6 +214,44 @@ describe('taskService', () => {
       taskService.completeTask(task.id);
       const reCompleted = taskService.completeTask(task.id);
       expect(reCompleted.status).toBe('done');
+    });
+  });
+
+  describe('assign', () => {
+    test('assigns a user and trims whitespace (happy path)', () => {
+      const task = taskService.create({ title: 'Task to assign' });
+      const updated = taskService.assign(task.id, '  Alice Smith  ');
+      expect(updated).toBeDefined();
+      expect(updated.assignee).toBe('Alice Smith');
+      expect(taskService.findById(task.id).assignee).toBe('Alice Smith');
+    });
+
+    test('returns null when assigning non-existent task', () => {
+      const result = taskService.assign('non-existent-uuid', 'Alice');
+      expect(result).toBeNull();
+    });
+
+    test('allows reassigning an already assigned task', () => {
+      const task = taskService.create({ title: 'Task' });
+      taskService.assign(task.id, 'Alice');
+      const updated = taskService.assign(task.id, 'Bob');
+      expect(updated.assignee).toBe('Bob');
+    });
+
+    test('preserves all other task fields when assigning', () => {
+      const task = taskService.create({
+        title: 'Important task',
+        description: 'Important details',
+        status: 'in_progress',
+        priority: 'high',
+      });
+      const updated = taskService.assign(task.id, 'Charlie');
+      expect(updated.title).toBe('Important task');
+      expect(updated.description).toBe('Important details');
+      expect(updated.status).toBe('in_progress');
+      expect(updated.priority).toBe('high');
+      expect(updated.id).toBe(task.id);
+      expect(updated.createdAt).toBe(task.createdAt);
     });
   });
 
